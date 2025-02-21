@@ -1,0 +1,164 @@
+install.packages("insuranceData")
+install.packages("dplyr")
+install.packages("skimr")
+install.packages("visdat")
+install.packages("ggplot2")
+
+library(insuranceData)
+library(dplyr)
+library(skimr)
+library(visdat)
+library(ggplot2)
+
+#Activar el data frame de dataCar
+data(dataCar)
+#Para conocer la estructura del data frame
+str(dataCar)
+#Para obtener un resumen del dataCar
+summary(dataCar)
+#Resumen mas detallado
+skim(dataCar)
+head(dataCar) #Nos muestra los primeros 6 datos
+tail(dataCar) #Nos muestra los ultimos 6 datos
+#Dimension del dataCar, muestra el no. de observaciones y el no. de variables
+dim(dataCar) 
+#Conocer la definicion de las variables (opciona a str)
+glimpse(dataCar)
+#Nombre de las variables o columnas de la base de datos
+names(dataCar) 
+colnames(dataCar)
+#Para obtener si hay datos faltantes
+any(is.na(dataCar))
+vis_dat(dataCar)
+vis_miss(dataCar) #Para visualizar los datos faltantes
+
+#¿Cuantas polizas conforman el data frame)
+nrow(dataCar)
+
+#¿Que porcentaje de polizas incurren en al menos una reclamacion?
+prc <- (sum(dataCar$numclaims>=1)/nrow(dataCar))
+prc
+
+#Verifique si hay datos faltantes, en caso de ser verdadero, identifique cuales faltan
+#Realice el resumen estadistico del data frame
+any(is.na(dataCar))
+
+#Verifique el top 5 de vehiculos con mayor numero de reclamaciones
+# Top 5 vehículos con mayor número de reclamaciones
+top_5_reclamaciones <- dataCar %>%
+  group_by(veh_body) %>%
+  summarise(totclaims = sum(numclaims)) %>%
+  arrange(desc(totclaims)) %>%
+  head(5)
+print(top_5_reclamaciones)
+#Grafico
+ggplot(top_5_reclamaciones, aes(x = reorder(veh_body, -totclaims), y = totclaims)) +
+geom_bar(stat = "identity", fill = "burlywood1", color = "green") +
+  labs(title = "Numero de Reclamaciones por tipo de vehiculo",
+       x = "Tipo de Vehiculo",
+       y = "Total de Reclamaciones")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust =1))
+#Verifique el top 10 de vehiculos con mayor monto de reclamaciones
+# Top 10 vehículos con mayor monto de reclamaciones
+top_10_monto <- dataCar %>%
+  group_by(veh_body) %>%
+  summarise(monclaims = sum(claimcst0)) %>%
+  arrange(desc(monclaims)) %>%
+  head(10)
+# Mostrar el top 10
+print(top_10_monto)
+#Grafico
+ggplot(top_10_monto, aes(x = reorder(veh_body, -monclaims), y = monclaims)) +
+  geom_bar(stat = "identity", fill = "#EED2EE", color = "red") +
+  labs(title = "Vehiculos con mayor Monto de Reclamacion",
+       x = "Tipo de Vehiculo",
+       y = "Monto de Reclamaciones")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust =1))
+
+#Realice un analisis contemplando el genero
+#Porcentaje de pólizas con al menos una reclamación por género
+prc_genero <- dataCar %>%
+  group_by(gender) %>%
+  summarise(
+    total_polizas = n(),
+    polizas_con_reclamacion = sum(numclaims >= 1),
+    porcentaje = (polizas_con_reclamacion / total_polizas) * 100
+  )
+print(prc_genero)
+#Top 5 tipos de vehículos con más reclamaciones por género:
+top_5_reclamaciones_genero <- dataCar %>%
+  group_by(gender, veh_body) %>%
+  summarise(totclaims = sum(numclaims)) %>%
+  arrange(gender, desc(totclaims)) %>%
+  group_by(gender) %>%
+  slice_head(n = 5)
+
+print(top_5_reclamaciones_genero)
+
+ggplot(top_5_reclamaciones_genero, aes(x = reorder(veh_body, -totclaims), y = totclaims, fill = gender)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Top 5 Vehículos con más Reclamaciones por Género",
+       x = "Tipo de Vehículo",
+       y = "Total de Reclamaciones") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Top 10 tipos de vehículos con mayor monto de reclamaciones por género:
+top_10_monto_genero <- dataCar %>%
+  group_by(gender, veh_body) %>%
+  summarise(monclaims = sum(claimcst0)) %>%
+  arrange(gender, desc(monclaims)) %>%
+  group_by(gender) %>%
+  slice_head(n = 10)
+
+print(top_10_monto_genero)
+
+ggplot(top_10_monto_genero, aes(x = reorder(veh_body, -monclaims), y = monclaims, fill = gender)) +
+  geom_bar(stat = "identity", position = "dodge",color = "black") +
+  labs(title = "Top 10 Vehículos con Mayor Monto de Reclamaciones por Género",
+       x = "Tipo de Vehículo",
+       y = "Monto de Reclamaciones") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+scale_fill_manual(values = c("black","white"))
+
+#Genero con mayor numero de reclamaciones
+genero_mayor_reclamaciones <- dataCar %>%
+  group_by(gender) %>%
+  summarise(total_reclamaciones = sum(numclaims)) %>%
+  arrange(desc(total_reclamaciones))
+print(genero_mayor_reclamaciones)
+genero_mayor <- genero_mayor_reclamaciones %>%
+  slice_max(total_reclamaciones, n = 1)
+print(genero_mayor)
+#Top 5 de vehículos más valiosos por género:
+vehiculos_mayor_valor <- dataCar %>%
+  group_by(gender, veh_body) %>%
+  summarise(valor_promedio = mean(veh_value, na.rm = TRUE)) %>%
+  arrange(gender, desc(valor_promedio)) %>%
+  group_by(gender) %>%
+  slice_head(n = 5)
+
+print(vehiculos_mayor_valor)
+
+#Top 5 de vehículos más antiguos por género:
+vehiculos_mas_antiguos <- dataCar %>%
+  group_by(gender, veh_body) %>%
+  summarise(edad_promedio = mean(veh_age, na.rm = TRUE)) %>%
+  arrange(gender, desc(edad_promedio)) %>%
+  group_by(gender) %>%
+  slice_head(n = 5)
+
+print(vehiculos_mas_antiguos)
+
+# Gráfico
+ggplot(vehiculos_mas_antiguos, aes(x = reorder(veh_body, -edad_promedio), y = edad_promedio, fill = gender)) +
+  geom_bar(stat = "identity", position = "dodge", color = "black") +
+  labs(title = "Top 5 Vehículos Más Antiguos por Género",
+       x = "Tipo de Vehículo",
+       y = "Edad Promedio del Vehículo (años)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = c("black","white"))
+
