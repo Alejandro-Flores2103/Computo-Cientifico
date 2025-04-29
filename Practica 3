@@ -1,0 +1,231 @@
+# PRACTICA 3: ANALISIS DE COMPONENTES PRINCIPALES
+
+# EJERCICIO 1
+
+#--------------- CARGA DE LIBRERÍAS NECESARIAS ----------------#
+p_load(haven, dplyr, factoextra, FactoMineR, readr, rgl, fpc, psych, readxl)
+
+#--------------- LECTURA DE LOS DATOS ----------------#
+# Importar archivo CSV 
+PoblacionUSA <- read.csv2("data_pca.csv", sep = ";")
+
+# Visualizar los datos cargados
+View(PoblacionUSA)
+
+#--------------- NORMALIZACIÓN DE LOS DATOS ----------------#
+data1 <- scale(PoblacionUSA[,-16])
+
+# Visualizar datos normalizados
+View(data1)
+
+#--------------- ANÁLISIS DE COMPONENTES PRINCIPALES (PCA) ----------------#
+# Realizar el PCA usando princomp
+pca <- princomp(data1)
+
+# Diagnóstico inicial del PCA
+summary(pca)         # Muestra varianza explicada por cada componente
+pca$loadings         # Muestra cargas factoriales (contribución de cada variable)
+
+#--------------- VISUALIZACIÓN DE RESULTADOS DEL PCA ----------------#
+# Graficar la varianza explicada por cada componente
+fviz_eig(pca, choice = "variance")     # Gráfico de porcentaje de varianza
+# Graficar los valores propios (eigenvalues) de cada componente
+fviz_eig(pca, choice = "eigenvalue")    # Gráfico de eigenvalores
+
+#--------------- ANÁLISIS GRÁFICO DE PUNTUACIONES Y VARIABLES ----------------#
+# Gráfico de individuos (observaciones) coloreados por calidad de representación (cos²)
+fviz_pca_ind(pca, 
+             col.ind = "cos2",
+             gradient.cols = c("red", "yellow", "green"),
+             repel = FALSE)
+
+# Gráfico de variables (factores) coloreados por contribución
+fviz_pca_var(pca,
+             col.var = "contrib",
+             gradient.cols = c("red", "yellow", "green"),
+             repel = FALSE)
+
+# Biplot: individuos y variables en un solo gráfico
+fviz_pca_biplot(pca,
+                col.var = "red",    # Variables en rojo
+                col.ind = "black")  # Individuos en negro
+
+#--------------- ANÁLISIS DE LA MATRIZ DE CORRELACIÓN ----------------#
+# Abrir nueva ventana gráfica para mostrar el plot
+x11()
+
+# Graficar la matriz de correlación
+psych::cor.plot(data1)
+
+# Calcular el determinante de la matriz de correlación
+# (Determinante cercano a 0 sugiere multicolinealidad → PCA es apropiado)
+det(cor(data1))
+
+#--------------- PCA CON ROTACIÓN VARIMAX (MÉTODO TIPO SPSS) ----------------#
+# Realizar el PCA con 2 factores y rotación varimax
+pca2 <- psych::principal(data1, 
+                         nfactors = 2,            # Número de factores a extraer
+                         residuals = FALSE,       # No mostrar residuos
+                         rotate = "varimax",      # Rotación ortogonal para mejor interpretación
+                         scores = TRUE,           # Calcular scores de individuos
+                         oblique.scores = FALSE,  # No scores oblicuos
+                         method = "regression",   # Método de obtención de scores
+                         use = "pairwise",        # Manejo de valores faltantes
+                         cor = "cor")             # Usar matriz de correlación
+
+# Mostrar resultados del PCA rotado
+pca2
+
+#--------------- EXTRACCIÓN DE PESOS (LOADINGS) Y SCORES ----------------#
+# Pesos (coeficientes) para la primera componente
+pca2$weights[,1]
+
+# Pesos (coeficientes) para la segunda componente
+pca2$weights[,2]
+
+# Scores de los individuos en los nuevos componentes principales
+pca2$scores
+
+# EJERCICIO 2
+
+#--------------- Poblacion de USA para el año 2000----------------#
+# Cargar archivo Excel
+PoblacionUSA <- read_excel("PoblacionUSA.xlsm")
+
+# Visualizar datos
+View(PoblacionUSA)
+
+# Seleccionar variables específicas para el año 2000
+PoblacionUSA2000 <- PoblacionUSA %>% 
+  select(State, 
+         `Census Resident Total Population - AB:Qr-1-2000`,
+         `Resident Total Population Estimate - Jul-1-2000`,
+         `Net Domestic Migration - Jul-1-2000`,
+         `Federal/Civilian Movement from Abroad - Jul-1-2000`,
+         `Net International Migration - Jul-1-2000`, 
+         `Period Births - Jul-1-2000`,
+         `Period Deaths - Jul-1-2000`,
+         `Resident Under 65 Population Estimate - Jul-1-2000`,
+         `Resident 65 Plus Population Estimate - Jul-1-2000`,
+         `Residual - Jul-1-2000`)
+
+#--------------- NORMALIZACIÓN DE LOS DATOS ----------------#
+# Normalizar las variables seleccionadas
+data1 <- scale(PoblacionUSA2000[,-1])
+
+# Visualizar datos normalizados
+View(data1)
+
+#--------------- PRUEBA DE KMO ----------------#
+# Verificar la adecuación del muestreo para aplicar PCA
+psych::KMO(data1)
+
+#--------------- ANÁLISIS DE COMPONENTES PRINCIPALES (PCA) ----------------#
+# Realizar el PCA
+pca <- princomp(data1)
+
+# Diagnóstico inicial
+summary(pca)
+pca$loadings
+
+#--------------- VISUALIZACIÓN DE RESULTADOS ----------------#
+# Gráfico de varianza explicada
+fviz_eig(pca, choice = "variance")
+# Gráfico de eigenvalores
+fviz_eig(pca, choice = "eigenvalue")
+
+# Gráfico de individuos
+fviz_pca_ind(pca, col.ind = "cos2", gradient.cols = c("red", "yellow", "green"), repel = FALSE)
+
+# Gráfico de variables
+fviz_pca_var(pca, col.var = "contrib", gradient.cols = c("red", "yellow", "green"), repel = FALSE)
+
+# Biplot
+fviz_pca_biplot(pca, col.var = "red", col.ind = "black")
+
+#--------------- MATRIZ DE CORRELACIÓN ----------------#
+x11()
+psych::cor.plot(data1)
+
+# Determinante de la matriz
+det(cor(data1))
+
+#--------------- PCA CON ROTACIÓN VARIMAX ----------------#
+# Aplicar PCA con rotación varimax para 2 factores
+pca2 <- psych::principal(data1, nfactors = 2, residuals = FALSE, rotate = "varimax",
+                         scores = TRUE, oblique.scores = FALSE, method = "regression",
+                         use = "pairwise", cor = "cor")
+
+# Mostrar resultados
+pca2
+
+# Pesos de los componentes
+pca2$weights[,1]
+pca2$weights[,2]
+
+# Scores de individuos
+pca2$scores
+
+#--------------- Poblacion de USA para el año 2001 ----------------#
+# Repetimos el proceso para el año 2001
+PoblacionUSA <- read_excel("PoblacionUSA.xlsm")
+
+# Visualizar datos
+View(PoblacionUSA)
+
+# Seleccionar variables específicas para el año 2001
+PoblacionUSA2001 <- PoblacionUSA %>% 
+  select(State, 
+         `Resident Total Population Estimate - Jul-1-2001`,
+         `Net Domestic Migration - Jul-1-2001`,
+         `Federal/Civilian Movement from Abroad - Jul-1-2001`,
+         `Net International Migration - Jul-1-2001`,
+         `Period Births - Jul-1-2001`,
+         `Period Deaths - Jul-1-2001`,
+         `Resident Under 65 Population Estimate - Jul-1-2001`,
+         `Resident 65 Plus Population Estimate - Jul-1-2001`,
+         `Residual - Jul-1-2001`)
+
+#--------------- NORMALIZACIÓN ----------------#
+data1 <- scale(PoblacionUSA2001[,-1])
+
+# Visualizar datos
+View(data1)
+
+#--------------- PRUEBA DE KMO ----------------#
+psych::KMO(data1)
+
+#--------------- PCA ----------------#
+pca <- princomp(data1)
+
+# Diagnóstico
+summary(pca)
+pca$loadings
+
+#--------------- VISUALIZACIÓN ----------------#
+fviz_eig(pca, choice = "variance")
+fviz_eig(pca, choice = "eigenvalue")
+fviz_pca_ind(pca, col.ind = "cos2", gradient.cols = c("red", "yellow", "green"), repel = FALSE)
+fviz_pca_var(pca, col.var = "contrib", gradient.cols = c("red", "yellow", "green"), repel = FALSE)
+fviz_pca_biplot(pca, col.var = "red", col.ind = "black")
+
+#--------------- MATRIZ DE CORRELACIÓN ----------------#
+x11()
+psych::cor.plot(data1)
+
+# Determinante
+det(cor(data1))
+
+#--------------- PCA CON ROTACIÓN VARIMAX ----------------#
+pca2 <- psych::principal(data1, nfactors = 2, residuals = FALSE, rotate = "varimax",
+                         scores = TRUE, oblique.scores = FALSE, method = "regression",
+                         use = "pairwise", cor = "cor")
+
+pca2
+
+# Pesos de los componentes
+pca2$weights[,1]
+pca2$weights[,2]
+
+# Scores de individuos
+pca2$scores
